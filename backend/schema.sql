@@ -1,0 +1,25 @@
+CREATE DATABASE IF NOT EXISTS myshop_pro;
+USE myshop_pro;
+
+CREATE TABLE IF NOT EXISTS users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  phone VARCHAR(20) NOT NULL,
+  email VARCHAR(120) NOT NULL UNIQUE,
+  password_hash VARCHAR(200) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS orders (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NULL,
+  customer_name VARCHAR(100) NOT NULL,
+  phone VARCHAR(20) NOT NULL,
+  product VARCHAR(120) NOT NULL,
+  amount_usd DECIMAL(10,2) NOT NULL,
+  slip_url VARCHAR(255),
+  delivery_note TEXT NULL,
+  status ENUM('Pending','Verified','Complete') DEFAULT 'Pending',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);

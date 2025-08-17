@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="km"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin Orders</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<script defer src="config.js"></script>
+</head><body>
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">បញ្ជី Order</h3>
+    <a class="btn btn-outline-secondary" href="admin-login.html">Change Key</a>
+  </div>
+  <div id="alert"></div>
+  <table class="table table-striped align-middle">
+    <thead><tr>
+      <th>ID</th><th>ឈ្មោះ</th><th>ទូរស័ព្ទ</th><th>ផលិតផល</th><th>Amount</th>
+      <th>Slip</th><th>Status</th><th>Delivery Note</th><th>Time</th>
+    </tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+</div>
+
+<div class="modal fade" id="slipModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content"><div class="modal-body p-0 text-center">
+    <img id="slipFull" class="img-fluid" alt="slip">
+  </div></div></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  const rows = document.getElementById('rows');
+  const alertBox = (t,m)=>{document.getElementById('alert').innerHTML=`<div class="alert alert-${t}">${m}</div>`; setTimeout(()=>document.getElementById('alert').innerHTML='',2500);};
+  const key = localStorage.getItem('admin_key')||'';
+  if(!key) location.href='admin-login.html';
+
+  async function load(){
+    rows.innerHTML = '<tr><td colspan="9">Loading...</td></tr>';
+    const res = await fetch(window.API_BASE + '/orders');
+    const data = await res.json();
+    rows.innerHTML = '';
+    data.forEach(o=>{
+      rows.innerHTML += `
+        <tr>
+          <td>${o.id}</td>
+          <td>${o.customer_name}</td>
+          <td>${o.phone}</td>
+          <td>${o.product}</td>
+          <td>$${Number(o.amount_usd).toFixed(2)}</td>
+          <td>${o.slip_url?`<img src="${o.slip_url}" width="90" style="cursor:pointer" onclick="showSlip('${o.slip_url}')">`:'-'}</td>
+          <td>
+            <select class="form-select form-select-sm" onchange="changeStatus(${o.id}, this.value)">
+              <option ${o.status==='Pending'?'selected':''}>Pending</option>
+              <option ${o.status==='Verified'?'selected':''}>Verified</option>
+              <option ${o.status==='Complete'?'selected':''}>Complete</option>
+            </select>
+          </td>
+          <td style="min-width:240px">
+            <div class="input-group input-group-sm">
+              <textarea id="note-${o.id}" class="form-control" rows="1" placeholder="ex: Email: x, Pass: y">${o.delivery_note||''}</textarea>
+              <button class="btn btn-outline-primary" onclick="saveNote(${o.id})">Save</button>
+            </div>
+          </td>
+          <td>${new Date(o.created_at).toLocaleString()}</td>
+        </tr>`;
+    });
+  }
+
+  async function changeStatus(id, status){
+    const res = await fetch(window.API_BASE + '/orders/' + id + '/status', {
+      method: 'PATCH',
+      headers: { 'Content-Type':'application/json', 'x-admin-key': key },
+      body: JSON.stringify({ status })
+    });
+    alertBox(res.ok?'success':'danger', res.ok?'បានប្ដូរស្ថានភាព':'Error');
+  }
+
+  async function saveNote(id){
+    const note = document.getElementById('note-'+id).value;
+    const res = await fetch(window.API_BASE + '/orders/' + id + '/note', {
+      method:'PUT',
+      headers: { 'Content-Type':'application/json', 'x-admin-key': key },
+      body: JSON.stringify({ note })
+    });
+    alertBox(res.ok?'success':'danger', res.ok?'Note saved':'Error');
+  }
+
+  function showSlip(src){
+    document.getElementById('slipFull').src = src;
+    new bootstrap.Modal(document.getElementById('slipModal')).show();
+  }
+  load();
+</script>
+</body></html>
